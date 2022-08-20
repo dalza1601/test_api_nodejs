@@ -1,6 +1,11 @@
 const { Router } = require("express");
 const { check } = require("express-validator");
-const { validateInputs } = require("../middelwares/validate-inputs");
+const { validateInputs } = require("../middlewares/validate-inputs");
+const {
+  isRole,
+  emailExist,
+  existUserById,
+} = require("../helpers/db-validators");
 
 const {
   usersGet,
@@ -14,7 +19,16 @@ const router = Router();
 
 router.get("/", usersGet);
 
-router.put("/:id", usersPut);
+router.put(
+  "/:id",
+  [
+    check("id", "No es un ID válido").isMongoId(),
+    check("id").custom(existUserById),
+    check("role").custom(isRole),
+    validateInputs,
+  ],
+  usersPut
+);
 
 router.post(
   "/",
@@ -24,14 +38,22 @@ router.post(
       "password",
       "La contraseña es obligatoria y mas de 6 letras."
     ).isLength({ min: 6 }),
-    check("email", "El correo no es valido").isEmail,
-    check("role", "No es un rol valido.").isIn(["ADMIN", "USER"]),
+    check("email").custom(emailExist),
+    check("role").custom(isRole),
     validateInputs,
   ],
   usersPost
 );
 
-router.delete("/", usersDelete);
+router.delete(
+  "/:id",
+  [
+    check("id", "No es un ID válido").isMongoId(),
+    check("id").custom(existUserById),
+    validateInputs,
+  ],
+  usersDelete
+);
 
 router.patch("/", usersPatch);
 
